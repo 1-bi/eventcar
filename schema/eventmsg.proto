@@ -1,0 +1,40 @@
+syntax = "proto3";
+package schema;
+
+
+
+/* ReqQ message in queue  */
+message ReqQ {
+  int64 reqId = 1;
+  string name = 2;
+  enum MsgComType {
+    QUE = 0;
+    SUB = 1;
+  }
+  MsgComType comType = 3;
+}
+
+message ReqEvent {
+  int64 reqId = 1;
+  string name = 2;
+  bytes  msgBody = 3;
+}
+
+message ResEvent {
+  int64  reqId = 1;
+  string name = 2;
+  enum ResultType {
+    SUCCESS = 0;
+    FAILURE = 1;
+  }
+  ResultType resultType = 3;
+  bytes resultBody = 5;
+  CodeError error = 4;
+}
+
+message CodeError {
+  string msg = 1;
+  string code = 2;
+  string prefix = 3;
+}
+
