@@ -79,6 +79,9 @@ func (myself *WorkerManager) Run() {
 		myself.controlCh <- CMD_RUN
 	}()
 
+	// --- close channel --
+	defer close(myself.controlCh)
+
 	// --- connect to message
 	var sub stan.Subscription
 	var err error
