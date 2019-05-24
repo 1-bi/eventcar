@@ -17,7 +17,9 @@ import (
 )
 
 func main() {
-	testNatsServer()
+	//testNatsServer()
+
+	runListner()
 
 }
 
@@ -94,12 +96,15 @@ func runListner() {
 
 	// --- call time service
 	go func() {
-		time.Sleep(6 * time.Second)
+		time.Sleep(3 * time.Second)
 		Client_fire(agent)
 	}()
 
 	// connect api --
-
+	go func() {
+		time.Sleep(6 * time.Second)
+		Client_fire2(agent)
+	}()
 	// ---- keep program running ----
 	runtime.Goexit()
 }
@@ -129,6 +134,20 @@ func Client_fire(clientApi eventcar.ClientApi) {
 
 	clientApi.FireByQueue("test.event1", []byte(msg), cb)
 
+	fmt.Println("send message ")
+}
+
+func Client_fire2(clientApi eventcar.ClientApi) {
+
+	var msg = "hello test case 2"
+
+	var cb eventcar.SuccessCallback
+
+	cb = new(SuccessCallbackImpl)
+
+	clientApi.FireByQueue("test.event1", []byte(msg), cb)
+
+	fmt.Println("send message2 ")
 }
 
 type SuccessCallbackImpl struct {

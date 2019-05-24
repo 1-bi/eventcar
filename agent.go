@@ -8,7 +8,7 @@ import (
 	"github.com/bwmarrin/snowflake"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/gogo/protobuf/proto"
-	"github.com/nats-io/stan.go"
+	"github.com/nats-io/go-nats-streaming"
 	"log"
 	"strconv"
 	"strings"
@@ -77,7 +77,13 @@ func (myself *Agent) Start() {
 	// open and connect nats subscribe queue message
 
 	go func() {
-		myself.openNatsSubscribe(myself.natsConn)
+
+		wm := NewWorkerManager(myself.natsConn)
+
+		wm.RequestHandler(myself.handleReq)
+
+		wm.Run()
+
 	}()
 
 	// --- start watch server
@@ -253,83 +259,60 @@ func (myself *Agent) startWatchServer(cli *clientv3.Client) {
 
 }
 
-func (myself *Agent) openNatsSubscribe(conn stan.Conn) {
+func (myself *Agent) handleReq(reqQ *schema.ReqQ) {
 
-	sub, err := conn.Subscribe("reqm", func(m *stan.Msg) {
+	// --- get msg body from etcd cache --
+	var key = strings.Join([]string{"reqm", strconv.FormatInt(reqQ.ReqId, 10)}, "/")
 
-		reqQ := new(schema.ReqQ)
-
-		if err := proto.Unmarshal(m.Data, reqQ); err != nil {
-			fmt.Println(err)
-		}
-
-		// --- get msg body from etcd cache --
-		var key = strings.Join([]string{"reqm", strconv.FormatInt(reqQ.ReqId, 10)}, "/")
-
-		// --- req message
-		req, err := myself.etcdServOpt.GetMesssage(key)
-
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		_, err = myself.etcdServOpt.DelMessage(key)
-
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		// --- remove message ---
-
-		// 解码
-		recReqEventMsg := new(schema.ReqEvent)
-		if err := proto.Unmarshal(req, recReqEventMsg); err != nil {
-			log.Fatal("failed to unmarshal: ", err)
-		}
-
-		// --- call event predefined
-		fn := myself.regListeners[recReqEventMsg.Name]
-
-		if fn != nil {
-
-			// --- construct context ---
-			reqMsgCtx := newEmbeddedReqMsgContext(reqQ)
-			reqMsgCtx.setMsgRawBody(recReqEventMsg.MsgBody)
-
-			// --- call message body --
-			fn(reqMsgCtx)
-
-			var resMsg []byte
-
-			resMsg, err := proto.Marshal(reqMsgCtx.resResult.ConvertRepResult())
-
-			if err != nil {
-				log.Println(err)
-			}
-			// --- write response
-			var resKey = strings.Join([]string{"resm", strconv.FormatInt(reqQ.ReqId, 10)}, "/")
-
-			err = myself.etcdServOpt.SetMessage(resKey, resMsg)
-			if err != nil {
-				log.Println(err)
-			}
-
-		}
-
-	})
+	// --- req message
+	req, err := myself.etcdServOpt.GetMesssage(key)
 
 	if err != nil {
-		log.Println(err)
+		fmt.Println(err)
 	}
 
-	// --- printsub scribe ---
+	_, err = myself.etcdServOpt.DelMessage(key)
 
-	sub.Unsubscribe()
+	if err != nil {
+		fmt.Println(err)
+	}
 
-}
+	// --- remove message ---
 
-func (myself *Agent) buildReqMsgContext() {
+	// 解码
+	recReqEventMsg := new(schema.ReqEvent)
+	if err := proto.Unmarshal(req, recReqEventMsg); err != nil {
+		log.Fatal("failed to unmarshal: ", err)
+	}
 
+	// --- call event predefined
+	fn := myself.regListeners[recReqEventMsg.Name]
+
+	if fn != nil {
+
+		// --- construct context ---
+		reqMsgCtx := newEmbeddedReqMsgContext(reqQ)
+		reqMsgCtx.setMsgRawBody(recReqEventMsg.MsgBody)
+
+		// --- call message body --
+		fn(reqMsgCtx)
+
+		var resMsg []byte
+
+		resMsg, err := proto.Marshal(reqMsgCtx.resResult.ConvertRepResult())
+
+		if err != nil {
+			log.Println(err)
+		}
+		// --- write response
+		var resKey = strings.Join([]string{"resm", strconv.FormatInt(reqQ.ReqId, 10)}, "/")
+
+		err = myself.etcdServOpt.SetMessage(resKey, resMsg)
+		if err != nil {
+			log.Println(err)
+		}
+
+	}
 }
 
 // NewAgent check agent

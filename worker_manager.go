@@ -6,14 +6,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nats-io/go-nats-streaming"
 	"log"
-	"time"
-)
-
-const (
-	IDEL      = 0
-	CMD_RUN   = 1
-	CMD_PAUSE = 2
-	CMD_STOP  = 3
 )
 
 // workerManager monitor all running services, if facade mode
@@ -33,6 +25,8 @@ func NewWorkerManager(natsConn stan.Conn) *WorkerManager {
 func (myself *WorkerManager) startSubscribe() (stan.Subscription, error) {
 
 	sub, err := myself.natsConn.Subscribe("reqm", func(m *stan.Msg) {
+
+		fmt.Println("receive message ")
 
 		reqQ := new(schema.ReqQ)
 
@@ -70,28 +64,10 @@ func (myself *WorkerManager) RequestHandler(fn func(req *schema.ReqQ)) {
 func (myself *WorkerManager) Run() {
 
 	myself.controlCh = make(chan int)
+
+	// --- start  the run
 	go func() {
-
-		time.Sleep(2 * time.Second)
-
 		myself.controlCh <- CMD_RUN
-
-	}()
-
-	go func() {
-
-		time.Sleep(4 * time.Second)
-
-		myself.controlCh <- CMD_PAUSE
-
-	}()
-
-	go func() {
-
-		//time.Sleep(6 * time.Second)
-
-		//myself.controlCh <- CMD_STOP
-
 	}()
 
 	// --- connect to message
@@ -101,21 +77,23 @@ func (myself *WorkerManager) Run() {
 	for recSign := range myself.controlCh {
 
 		if CMD_RUN == recSign {
-			go func() {
-				//controlCh <- 2
 
+			go func() {
+
+				fmt.Println(" ----- execute run  ---- ")
 				sub, err = myself.startSubscribe()
 				if err != nil {
 					log.Println(err)
 				}
 				err = nil
 			}()
+
 		} else if CMD_PAUSE == recSign {
 
 			go func() {
 
 				if sub != nil {
-					fmt.Println(" -----555 ---- ")
+					fmt.Println(" ----- execute pause ---- ")
 
 					err = sub.Unsubscribe()
 

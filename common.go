@@ -34,6 +34,12 @@ const (
 	ALL_COMPLETE int8 = 1
 	ANY_ERRORS   int8 = 2
 	ALL_ERRORS   int8 = 3
+
+	// worker command  define
+	IDEL      = 0
+	CMD_RUN   = 1
+	CMD_PAUSE = 2
+	CMD_STOP  = 3
 )
 
 //  --- check the node id propertes
