@@ -3,6 +3,7 @@ package eventcar
 import (
 	"fmt"
 	"github.com/1-bi/eventcar/schema"
+	"github.com/1-bi/log-api"
 	"github.com/gogo/protobuf/proto"
 	"github.com/nats-io/go-nats-streaming"
 	"log"
@@ -10,15 +11,18 @@ import (
 
 // workerManager monitor all running services, if facade mode
 type WorkerManager struct {
-	natsConn  stan.Conn
-	controlCh chan int
-
+	natsConn   stan.Conn
+	controlCh  chan int
 	reqHandler func(req *schema.ReqQ)
+	logger     logapi.Logger
 }
 
 func NewWorkerManager(natsConn stan.Conn) *WorkerManager {
 	wm := new(WorkerManager)
 	wm.natsConn = natsConn
+
+	wm.logger = logapi.GetLogger("eventcar.WorkerManager")
+
 	return wm
 }
 
@@ -26,12 +30,17 @@ func (myself *WorkerManager) startSubscribe() (stan.Subscription, error) {
 
 	sub, err := myself.natsConn.Subscribe("reqm", func(m *stan.Msg) {
 
-		fmt.Println("receive message ")
-
 		reqQ := new(schema.ReqQ)
 
 		if err := proto.Unmarshal(m.Data, reqQ); err != nil {
 			fmt.Println(err)
+		}
+
+		if myself.logger.IsDebugEnabled() {
+			sb := logapi.NewStructBean()
+			sb.LogInt64("reqId", reqQ.ReqId)
+			sb.LogString("eventName", reqQ.Name)
+			myself.logger.Debug("Receive req from message content ", sb)
 		}
 
 		// --- stop recevie message
@@ -93,7 +102,6 @@ func (myself *WorkerManager) Run() {
 			go func() {
 
 				if sub != nil {
-					fmt.Println(" ----- execute pause ---- ")
 
 					err = sub.Unsubscribe()
 
@@ -114,8 +122,6 @@ func (myself *WorkerManager) Run() {
 				}
 
 			}
-
-			fmt.Println("-=--00-")
 
 			break
 		}
