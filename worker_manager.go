@@ -5,19 +5,23 @@ import (
 	"github.com/1-bi/eventcar/schema"
 	"github.com/gogo/protobuf/proto"
 	"github.com/nats-io/go-nats-streaming"
+	"log"
 	"time"
 )
 
 const (
-	IDEL    = 0
-	RUNNING = 1
-	PAUSE   = 2
-	STOP    = 3
+	IDEL      = 0
+	CMD_RUN   = 1
+	CMD_PAUSE = 2
+	CMD_STOP  = 3
 )
 
 // workerManager monitor all running services, if facade mode
 type WorkerManager struct {
-	natsConn stan.Conn
+	natsConn  stan.Conn
+	controlCh chan int
+
+	reqHandler func(req *schema.ReqQ)
 }
 
 func NewWorkerManager(natsConn stan.Conn) *WorkerManager {
@@ -25,13 +29,6 @@ func NewWorkerManager(natsConn stan.Conn) *WorkerManager {
 	wm.natsConn = natsConn
 	return wm
 }
-
-/*
-
-func (myself *WorkerManager) sign() <- chan int{
-	return <- 1
-}
-*/
 
 func (myself *WorkerManager) startSubscribe() (stan.Subscription, error) {
 
@@ -43,6 +40,19 @@ func (myself *WorkerManager) startSubscribe() (stan.Subscription, error) {
 			fmt.Println(err)
 		}
 
+		// --- stop recevie message
+		myself.controlCh <- CMD_PAUSE
+
+		// --- add logic start  ---
+		if myself.reqHandler != nil {
+			myself.reqHandler(reqQ)
+		}
+
+		// ----add logic end ---
+
+		// --- restart recevie message
+		myself.controlCh <- CMD_RUN
+
 	})
 
 	if err != nil {
@@ -53,14 +63,18 @@ func (myself *WorkerManager) startSubscribe() (stan.Subscription, error) {
 
 }
 
+func (myself *WorkerManager) RequestHandler(fn func(req *schema.ReqQ)) {
+	myself.reqHandler = fn
+}
+
 func (myself *WorkerManager) Run() {
 
-	controlCh := make(chan int)
+	myself.controlCh = make(chan int)
 	go func() {
 
 		time.Sleep(2 * time.Second)
 
-		controlCh <- RUNNING
+		myself.controlCh <- CMD_RUN
 
 	}()
 
@@ -68,41 +82,62 @@ func (myself *WorkerManager) Run() {
 
 		time.Sleep(4 * time.Second)
 
-		controlCh <- PAUSE
+		myself.controlCh <- CMD_PAUSE
 
 	}()
 
 	go func() {
 
-		time.Sleep(6 * time.Second)
+		//time.Sleep(6 * time.Second)
 
-		controlCh <- STOP
+		//myself.controlCh <- CMD_STOP
 
 	}()
 
 	// --- connect to message
+	var sub stan.Subscription
+	var err error
 
-	for recSign := range controlCh {
+	for recSign := range myself.controlCh {
 
-		if RUNNING == recSign {
+		if CMD_RUN == recSign {
 			go func() {
 				//controlCh <- 2
-				fmt.Println("---- call running  ----")
 
+				sub, err = myself.startSubscribe()
+				if err != nil {
+					log.Println(err)
+				}
+				err = nil
 			}()
-		} else if PAUSE == recSign {
+		} else if CMD_PAUSE == recSign {
 
 			go func() {
-				//controlCh <- 3
-				fmt.Println("---- call pause  ----")
+
+				if sub != nil {
+					fmt.Println(" -----555 ---- ")
+
+					err = sub.Unsubscribe()
+
+					if err != nil {
+						log.Println(err)
+					}
+				}
+
 			}()
 
-		} else if STOP == recSign {
+		} else if CMD_STOP == recSign {
 
-			go func() {
-				//controlCh <- 3
-				fmt.Println("---- call stop   ----")
-			}()
+			if sub != nil {
+				err = sub.Close()
+
+				if err != nil {
+					log.Println(err)
+				}
+
+			}
+
+			fmt.Println("-=--00-")
 
 			break
 		}

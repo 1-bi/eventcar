@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/1-bi/eventcar"
+	"github.com/1-bi/eventcar/schema"
 	"github.com/1-bi/log-api"
 	"github.com/1-bi/log-zap"
 	"github.com/1-bi/log-zap/appender"
@@ -50,6 +51,11 @@ func testNatsServer() {
 	}
 
 	wm := eventcar.NewWorkerManager(natsConn)
+
+	wm.RequestHandler(func(req *schema.ReqQ) {
+
+	})
+
 	wm.Run()
 
 }
