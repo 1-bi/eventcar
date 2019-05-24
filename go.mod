@@ -32,7 +32,7 @@ require (
 	github.com/lib/pq v1.1.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
-	github.com/nats-io/go-nats-streaming v0.4.5 // indirect
+	github.com/nats-io/go-nats-streaming v0.4.5
 	github.com/nats-io/nats-server v1.4.1 // indirect
 	github.com/nats-io/nats-streaming-server v0.14.2 // indirect
 	github.com/nats-io/nats.go v1.7.2 // indirect

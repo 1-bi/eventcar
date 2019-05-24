@@ -8,12 +8,53 @@ import (
 	"github.com/1-bi/log-zap/appender"
 	zaplayout "github.com/1-bi/log-zap/layout"
 	"github.com/coreos/etcd/clientv3"
+	"github.com/nats-io/go-nats-streaming"
 	"log"
 	"runtime"
+	"strings"
 	"time"
 )
 
 func main() {
+	testNatsServer()
+
+}
+
+func testNatsServer() {
+	prepareLogSetting()
+	// --- set the global logger ---
+
+	var conf = eventcar.NewConfig()
+	natsHost := []string{"nats://localhost:4222"}
+
+	//conf.SetNatsHost([]string{"nats://localhost:4222"})
+
+	conf.SetNodeRoles([]string{
+		"master", "minion",
+	})
+
+	var configErr = conf.CheckBeforeStart()
+
+	if configErr != nil {
+		logapi.GetLogger("agent").Fatal(configErr.Error(), nil)
+		return
+	}
+
+	natsServer := strings.Join(natsHost, ",")
+	natsConn, err := stan.Connect("test-cluster", "clienttest", stan.NatsURL(natsServer))
+	if err != nil {
+		structBean := logapi.NewStructBean()
+		structBean.LogStringArray("nats.server", natsHost)
+		logapi.GetLogger("serviebus.Start").Fatal("Connect nats server fail.", structBean)
+		return
+	}
+
+	wm := eventcar.NewWorkerManager(natsConn)
+	wm.Run()
+
+}
+
+func runListner() {
 	prepareLogSetting()
 	// --- set the global logger ---
 
@@ -55,7 +96,6 @@ func main() {
 
 	// ---- keep program running ----
 	runtime.Goexit()
-
 }
 
 func Client_AddListener(clientApi eventcar.ClientApi) {

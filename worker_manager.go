@@ -2,79 +2,111 @@ package eventcar
 
 import (
 	"fmt"
+	"github.com/1-bi/eventcar/schema"
+	"github.com/gogo/protobuf/proto"
+	"github.com/nats-io/go-nats-streaming"
 	"time"
+)
+
+const (
+	IDEL    = 0
+	RUNNING = 1
+	PAUSE   = 2
+	STOP    = 3
 )
 
 // workerManager monitor all running services, if facade mode
 type WorkerManager struct {
-	controlCh <-chan int
+	natsConn stan.Conn
 }
 
-func NewWorkerManager() *WorkerManager {
+func NewWorkerManager(natsConn stan.Conn) *WorkerManager {
 	wm := new(WorkerManager)
-	wm.controlCh = make(chan int)
+	wm.natsConn = natsConn
 	return wm
 }
 
-func (myself *WorkerManager) SentSign(sign <-chan int) {
-	myself.controlCh = sign
+/*
+
+func (myself *WorkerManager) sign() <- chan int{
+	return <- 1
+}
+*/
+
+func (myself *WorkerManager) startSubscribe() (stan.Subscription, error) {
+
+	sub, err := myself.natsConn.Subscribe("reqm", func(m *stan.Msg) {
+
+		reqQ := new(schema.ReqQ)
+
+		if err := proto.Unmarshal(m.Data, reqQ); err != nil {
+			fmt.Println(err)
+		}
+
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return sub, err
+
 }
 
 func (myself *WorkerManager) Run() {
-	/*
-		for x := range myself.controlCh{
 
-			fmt.Println(" control value ")
-			fmt.Println(  x )
-
-		}
-	*/
-	ch1 := make(chan int)
+	controlCh := make(chan int)
 	go func() {
 
 		time.Sleep(2 * time.Second)
 
-		ch1 <- 1
+		controlCh <- RUNNING
 
 	}()
+
+	go func() {
+
+		time.Sleep(4 * time.Second)
+
+		controlCh <- PAUSE
+
+	}()
+
+	go func() {
+
+		time.Sleep(6 * time.Second)
+
+		controlCh <- STOP
+
+	}()
+
 	// --- connect to message
 
-	for x := range ch1 {
+	for recSign := range controlCh {
 
-		fmt.Println(" control value ")
-		fmt.Println(x)
-		if x == 1 {
+		if RUNNING == recSign {
 			go func() {
-				ch1 <- 2
+				//controlCh <- 2
+				fmt.Println("---- call running  ----")
 
 			}()
-		}
-		if x == 2 {
+		} else if PAUSE == recSign {
 
 			go func() {
-				ch1 <- 3
-
+				//controlCh <- 3
+				fmt.Println("---- call pause  ----")
 			}()
 
-		}
-		if x == 3 {
+		} else if STOP == recSign {
+
+			go func() {
+				//controlCh <- 3
+				fmt.Println("---- call stop   ----")
+			}()
+
 			break
 		}
 
 	}
-
-	/*
-		for {
-			select {
-			case ka, ok := <- ch1:
-
-				fmt.Println( ok )
-
-				fmt.Println(  ka )
-
-			}
-
-		}
-	*/
 
 }
