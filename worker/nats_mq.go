@@ -1,4 +1,4 @@
-package eventcar
+package worker
 
 import (
 	"fmt"
@@ -10,23 +10,23 @@ import (
 )
 
 // workerManager monitor all running services, if facade mode
-type WorkerManager struct {
+type NatsMQWorker struct {
 	natsConn   stan.Conn
 	controlCh  chan int
 	reqHandler func(req *schema.ReqQ)
 	logger     logapi.Logger
 }
 
-func NewWorkerManager(natsConn stan.Conn) *WorkerManager {
-	wm := new(WorkerManager)
+func NewNatsMQWorker(natsConn stan.Conn) *NatsMQWorker {
+	wm := new(NatsMQWorker)
 	wm.natsConn = natsConn
 
-	wm.logger = logapi.GetLogger("eventcar.WorkerManager")
+	wm.logger = logapi.GetLogger("eventcar.NatsMQWorker")
 
 	return wm
 }
 
-func (myself *WorkerManager) startSubscribe() (stan.Subscription, error) {
+func (myself *NatsMQWorker) startSubscribe() (stan.Subscription, error) {
 
 	sub, err := myself.natsConn.Subscribe("reqm", func(m *stan.Msg) {
 
@@ -66,18 +66,18 @@ func (myself *WorkerManager) startSubscribe() (stan.Subscription, error) {
 
 }
 
-func (myself *WorkerManager) RequestHandler(fn func(req *schema.ReqQ)) {
+func (myself *NatsMQWorker) RequestHandler(fn func(req *schema.ReqQ)) {
 	myself.reqHandler = fn
 }
 
 // Stop send commond stop
-func (myself *WorkerManager) Stop() {
+func (myself *NatsMQWorker) Stop() {
 	go func() {
 		myself.controlCh <- CMD_STOP
 	}()
 }
 
-func (myself *WorkerManager) Run() {
+func (myself *NatsMQWorker) Run() {
 
 	myself.controlCh = make(chan int)
 

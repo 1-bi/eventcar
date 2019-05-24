@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/1-bi/eventcar"
 	"github.com/1-bi/eventcar/schema"
+	"github.com/1-bi/eventcar/worker"
 	"github.com/1-bi/log-api"
 	"github.com/1-bi/log-zap"
 	"github.com/1-bi/log-zap/appender"
@@ -52,7 +53,7 @@ func testNatsServer() {
 		return
 	}
 
-	wm := eventcar.NewWorkerManager(natsConn)
+	wm := worker.NewNatsMQWorker(natsConn)
 
 	wm.RequestHandler(func(req *schema.ReqQ) {
 
@@ -192,7 +193,7 @@ func regServer() {
 		serviceName := "fixture-test"
 		serviceInfo := servicebus.AgentInfo{IP: "vicenteyou"}
 
-		fixture, err := servicebus.NewAgentRegisterService(serviceName, serviceInfo, []string{
+		fixture, err := servicebus.NewEtcdRegisterWorker(serviceName, serviceInfo, []string{
 			"http://localhost:2379",
 		})
 

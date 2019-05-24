@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/1-bi/eventcar/etcd"
 	"github.com/1-bi/eventcar/schema"
+	"github.com/1-bi/eventcar/worker"
 	"github.com/1-bi/log-api"
 	"github.com/bwmarrin/snowflake"
 	"github.com/coreos/etcd/clientv3"
@@ -62,6 +63,13 @@ func (myself *Agent) Start() {
 	servOptsMap := make(map[string]string, 0)
 	myself.etcdServOpt = etcd.NewEtcdServiceOperations(cli, servOptsMap)
 
+	// open and connect nats subscribe queue message. open etcd client define manager
+	go func() {
+		wm := worker.NewNatsMQWorker(myself.natsConn)
+		wm.RequestHandler(myself.handleReq)
+		wm.Run()
+	}()
+
 	waitgroup.Add(2)
 	// --- open thread
 	go func() {
@@ -72,18 +80,6 @@ func (myself *Agent) Start() {
 	go func() {
 		myself.startWatchServer(cli)
 		waitgroup.Done()
-	}()
-
-	// open and connect nats subscribe queue message
-
-	go func() {
-
-		wm := NewWorkerManager(myself.natsConn)
-
-		wm.RequestHandler(myself.handleReq)
-
-		wm.Run()
-
 	}()
 
 	// --- start watch server
@@ -238,11 +234,11 @@ func (myself *Agent) startRegisterServer(cli *clientv3.Client) {
 		nodeRoles = myself.conf.nodeRoles
 	}
 
-	var serv = NewAgentRegisterService(myself.conf._agentNodeId, cli, nodeRoles)
+	var serv = worker.NewEtcdRegisterWorker(myself.conf._agentNodeId, cli, nodeRoles)
 
 	err = serv.Start()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 }

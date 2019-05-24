@@ -1,4 +1,4 @@
-package eventcar
+package worker
 
 import (
 	"context"
@@ -11,22 +11,7 @@ import (
 	"time"
 )
 
-//the detail of service
-type AgentInfo struct {
-	LastUpdatedTime int64
-}
-
-func (myself *AgentInfo) SetLastUpdatedTime(t int64) {
-	myself.LastUpdatedTime = t
-}
-
-func NewAgentInfo() *AgentInfo {
-	var agentInfo = new(AgentInfo)
-
-	return agentInfo
-}
-
-type AgentServiceRegService struct {
+type EtcdRegisterWorker struct {
 	nodeId  string
 	stop    chan error
 	leaseid clientv3.LeaseID
@@ -36,10 +21,10 @@ type AgentServiceRegService struct {
 	roles []string
 }
 
-func NewAgentRegisterService(nodeId string, cli *clientv3.Client, roles []string) *AgentServiceRegService {
+func NewEtcdRegisterWorker(nodeId string, cli *clientv3.Client, roles []string) *EtcdRegisterWorker {
 
 	// --- create  AgentService ---
-	var agentRegServ = new(AgentServiceRegService)
+	var agentRegServ = new(EtcdRegisterWorker)
 	agentRegServ.client = cli
 	agentRegServ.nodeId = nodeId
 	agentRegServ.stop = make(chan error)
@@ -51,13 +36,13 @@ func NewAgentRegisterService(nodeId string, cli *clientv3.Client, roles []string
 
 }
 
-func (s *AgentServiceRegService) Start() error {
+func (s *EtcdRegisterWorker) Start() error {
 
 	repo, err := s.leaseGrant()
 	if err != nil {
 		structBean := logapi.NewStructBean()
 		structBean.LogString("reason", err.Error())
-		logapi.GetLogger("servicebus.AgentServiceWatchService.start").Fatal("Set lease time is fail.", structBean)
+		logapi.GetLogger("eventcar.EtcdRegisterWorker.Start").Fatal("Set lease time is fail.", structBean)
 		return err
 	}
 
@@ -74,7 +59,7 @@ func (s *AgentServiceRegService) Start() error {
 			return errors.New("server closed")
 		case ka, ok := <-ch:
 			if !ok {
-				logapi.GetLogger("servicebus.AgentServiceWatchService.start").Info("keep alive channel closed.", nil)
+				logapi.GetLogger("servicebus.EtcdWatcherWorker.start").Info("keep alive channel closed.", nil)
 				//log.Println("keep alive channel closed")
 				s.revoke()
 				return nil
@@ -84,7 +69,7 @@ func (s *AgentServiceRegService) Start() error {
 				structBean := logapi.NewStructBean()
 				structBean.LogString("nodeId", s.nodeId)
 				structBean.LogInt64("ttl time ", ka.TTL)
-				logapi.GetLogger("servicebus.AgentServiceWatchService.start").Debug("Recv reply from service: %fixture, ttl:%d", structBean)
+				logapi.GetLogger("servicebus.EtcdWatcherWorker.start").Debug("Recv reply from service: %fixture, ttl:%d", structBean)
 				goto END
 				//log.Printf("Recv reply from service: %fixture, ttl:%d", fixture.nodeId, ka.TTL)
 			}
@@ -94,7 +79,7 @@ func (s *AgentServiceRegService) Start() error {
 	}
 }
 
-func (myself *AgentServiceRegService) leaseGrant() (*clientv3.LeaseGrantResponse, error) {
+func (myself *EtcdRegisterWorker) leaseGrant() (*clientv3.LeaseGrantResponse, error) {
 
 	// create new lease
 	lease := clientv3.NewLease(myself.client)
@@ -108,7 +93,7 @@ func (myself *AgentServiceRegService) leaseGrant() (*clientv3.LeaseGrantResponse
 	return leaseResp, nil
 }
 
-func (myself *AgentServiceRegService) keepAliveFirst(resp *clientv3.LeaseGrantResponse) (<-chan *clientv3.LeaseKeepAliveResponse, error) {
+func (myself *EtcdRegisterWorker) keepAliveFirst(resp *clientv3.LeaseGrantResponse) (<-chan *clientv3.LeaseKeepAliveResponse, error) {
 
 	var err error
 	var value []byte
@@ -132,7 +117,7 @@ func (myself *AgentServiceRegService) keepAliveFirst(resp *clientv3.LeaseGrantRe
 	return myself.client.KeepAlive(context.TODO(), resp.ID)
 }
 
-func (myself *AgentServiceRegService) getLastUpdatedAgentInfo() ([]byte, error) {
+func (myself *EtcdRegisterWorker) getLastUpdatedAgentInfo() ([]byte, error) {
 	// --- get the lastupdate register service ---
 	info := NewAgentInfo()
 	info.SetLastUpdatedTime(time.Now().UnixNano())
@@ -142,11 +127,11 @@ func (myself *AgentServiceRegService) getLastUpdatedAgentInfo() ([]byte, error) 
 	return value, err
 }
 
-func (s *AgentServiceRegService) Stop() {
+func (s *EtcdRegisterWorker) Stop() {
 	s.stop <- nil
 }
 
-func (s *AgentServiceRegService) revoke() error {
+func (s *EtcdRegisterWorker) revoke() error {
 
 	_, err := s.client.Revoke(context.TODO(), s.leaseid)
 	if err != nil {
@@ -155,7 +140,7 @@ func (s *AgentServiceRegService) revoke() error {
 
 	structBean := logapi.NewStructBean()
 	structBean.LogString("nodeId", s.nodeId)
-	logapi.GetLogger("servicebus.AgentServiceWatchService.revoke").Info("servide:%fixture stop\n", structBean)
+	logapi.GetLogger("servicebus.EtcdWatcherWorker.revoke").Info("servide:%fixture stop\n", structBean)
 
 	//log.Printf("servide:%fixture stop\n", fixture.nodeId)
 	return err
