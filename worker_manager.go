@@ -70,6 +70,13 @@ func (myself *WorkerManager) RequestHandler(fn func(req *schema.ReqQ)) {
 	myself.reqHandler = fn
 }
 
+// Stop send commond stop
+func (myself *WorkerManager) Stop() {
+	go func() {
+		myself.controlCh <- CMD_STOP
+	}()
+}
+
 func (myself *WorkerManager) Run() {
 
 	myself.controlCh = make(chan int)
@@ -92,7 +99,6 @@ func (myself *WorkerManager) Run() {
 
 			go func() {
 
-				fmt.Println(" ----- execute run  ---- ")
 				sub, err = myself.startSubscribe()
 				if err != nil {
 					log.Println(err)
