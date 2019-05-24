@@ -3,6 +3,7 @@ package fixture
 import (
 	"fmt"
 	"github.com/1-bi/eventcar"
+	"github.com/1-bi/eventcar/api"
 	"github.com/1-bi/log-api"
 	"github.com/1-bi/log-zap"
 	"github.com/1-bi/log-zap/appender"
@@ -96,7 +97,7 @@ func (myself *AgentFixture) prepareConfig() (*eventcar.Config, error) {
 
 func (myself *AgentFixture) Test_Subscribe_Publish() {
 
-	myself.agent.On("agent.test.case1", func(ctx eventcar.ReqMsgContext) {
+	myself.agent.On("agent.test.case1", func(ctx api.ReqMsgContext) {
 
 		reqMsg := string(ctx.GetMsgRawBody())
 

@@ -49,6 +49,10 @@ func (s *EtcdRegisterWorker) Start() error {
 	// --- set the key value frist ---
 	ch, err := s.keepAliveFirst(repo)
 
+	if err != nil {
+		return err
+	}
+
 	// --- connect to message
 	for {
 		select {

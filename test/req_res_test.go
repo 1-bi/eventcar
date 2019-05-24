@@ -2,7 +2,6 @@ package test
 
 import (
 	"fmt"
-	"github.com/1-bi/eventcar"
 	"testing"
 	"time"
 )
@@ -17,15 +16,6 @@ func Test_Out(t *testing.T) {
 	}()
 	i := <-c
 	fmt.Println(i)
-}
-
-func Test_Channel_1(t *testing.T) {
-
-	wm := eventcar.NewWorkerManager()
-	//var c chan int
-
-	wm.Run()
-
 }
 
 func Test_Channel(t *testing.T) {
@@ -132,12 +122,4 @@ func test2(a chan int, b chan int) {
 	b <- 6
 	b <- 7
 	a <- 5
-}
-
-type SuccessCallbackImpl struct {
-}
-
-func (myself *SuccessCallbackImpl) Succeed(content []byte) {
-	fmt.Println(" callback successfully .")
-	fmt.Println(string(content))
 }

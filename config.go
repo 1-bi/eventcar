@@ -58,8 +58,7 @@ func (myself *Config) SetNodeRoles(newRoles []string) {
 
 func (myself *Config) CheckBeforeStart() error {
 
-	var confErr error
-	confErr = myself.checkNodeId()
+	var confErr = myself.checkNodeId()
 	if confErr != nil {
 		return confErr
 	}

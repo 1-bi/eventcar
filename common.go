@@ -8,6 +8,7 @@ package eventcar
 import (
 	"github.com/1-bi/log-api"
 	"github.com/bwmarrin/snowflake"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -55,7 +56,12 @@ func createNodeIdFile(path string, nodeNum int64) string {
 	// --- generate file and id
 	f, err := os.Create(path)
 
-	defer f.Close()
+	defer func() {
+		err = f.Close()
+		if err != nil {
+			logapi.GetLogger("serviebus.common").Debug(err.Error(), nil)
+		}
+	}()
 
 	if err != nil {
 		logapi.GetLogger("serviebus.common").Debug(err.Error(), nil)
@@ -70,6 +76,10 @@ func createNodeIdFile(path string, nodeNum int64) string {
 	// Generate a snowflake ID.
 	id := node.Generate()
 	locIndex, err := f.WriteString(id.String())
+
+	if err != nil {
+		log.Println(err)
+	}
 
 	f.Sync()
 

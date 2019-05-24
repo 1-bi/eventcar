@@ -139,19 +139,18 @@ func Client_fire(clientApi api.ClientApi) {
 	fmt.Println("send message ")
 }
 
+/*
 func Client_fire2(clientApi api.ClientApi) {
 
 	var msg = "hello test case 2"
 
-	var cb api.SuccessCallback
-
-	cb = new(SuccessCallbackImpl)
+	var cb = new(SuccessCallbackImpl)
 
 	clientApi.FireByQueue("test.event1", []byte(msg), cb)
 
 	fmt.Println("send message2 ")
 }
-
+*/
 type SuccessCallbackImpl struct {
 }
 

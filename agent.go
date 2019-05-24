@@ -63,7 +63,7 @@ func (myself *Agent) Start() {
 		return
 	}
 
-	servOptsMap := make(map[string]string, 0)
+	servOptsMap := make(map[string]string)
 	myself.etcdServOpt = etcd.NewEtcdServiceOperations(cli, servOptsMap)
 
 	// open and connect nats subscribe queue message. open etcd client define manager
@@ -144,6 +144,10 @@ func (myself *Agent) FireByQueue(eventName string, msgBody []byte, callback ...a
 	// --- set the key value ---
 	err = myself.etcdServOpt.SetMessage(key, reqMsg)
 
+	if err != nil {
+		return err
+	}
+
 	// ---- start watcher listener ---
 	// --- connect client ---
 
@@ -214,7 +218,10 @@ func (myself *Agent) FireByPublish(eventName string, msgBody []byte, callback ..
 
 	}
 
-	myself.natsConn.Publish("reqm", req)
+	err = myself.natsConn.Publish("reqm", req)
+	if err != nil {
+		return err
+	}
 
 	// --- start new watcher ---
 
