@@ -1,4 +1,4 @@
-package eventcar
+package api
 
 // ClientApi Api Event is define full message
 type ClientApi interface {

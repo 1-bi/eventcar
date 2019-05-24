@@ -1,8 +1,9 @@
-package eventcar
+package worker
 
 import (
 	"context"
 	"fmt"
+	"github.com/1-bi/eventcar/api"
 	"github.com/1-bi/eventcar/schema"
 	"github.com/1-bi/uerrors"
 	"github.com/coreos/etcd/clientv3"
@@ -13,10 +14,10 @@ import (
 type QueueWatcher struct {
 	client   *clientv3.Client
 	eventKey string
-	cbs      []Callback
+	cbs      []api.Callback
 
-	sCallback []SuccessCallback
-	fCallback []FailureCallback
+	sCallback []api.SuccessCallback
+	fCallback []api.FailureCallback
 }
 
 func NewQueueWatcher(client *clientv3.Client) *QueueWatcher {
@@ -29,22 +30,22 @@ func (myself *QueueWatcher) SetEventKey(eventKey string) {
 	myself.eventKey = eventKey
 }
 
-func (myself *QueueWatcher) SetCallbacks(newCbs ...Callback) {
+func (myself *QueueWatcher) SetCallbacks(newCbs ...api.Callback) {
 	myself.cbs = newCbs
 
-	myself.sCallback = make([]SuccessCallback, 0)
-	myself.fCallback = make([]FailureCallback, 0)
+	myself.sCallback = make([]api.SuccessCallback, 0)
+	myself.fCallback = make([]api.FailureCallback, 0)
 
 	for _, cb := range newCbs {
 
-		scb, ok := cb.(SuccessCallback)
+		scb, ok := cb.(api.SuccessCallback)
 
 		if ok {
 			myself.sCallback = append(myself.sCallback, scb)
 			continue
 		}
 
-		fsb, ok := cb.(FailureCallback)
+		fsb, ok := cb.(api.FailureCallback)
 		if ok {
 			myself.fCallback = append(myself.fCallback, fsb)
 			continue

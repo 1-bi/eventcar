@@ -2,6 +2,7 @@ package eventcar
 
 import (
 	"fmt"
+	"github.com/1-bi/eventcar/api"
 	"github.com/1-bi/eventcar/etcd"
 	"github.com/1-bi/eventcar/schema"
 	"github.com/1-bi/eventcar/worker"
@@ -28,7 +29,9 @@ type Agent struct {
 
 	etcdServOpt *etcd.EtcdServiceOperations
 
-	regListeners map[string]func(ReqMsgContext)
+	regListeners map[string]func(api.ReqMsgContext)
+
+	respWatcher *worker.EtcdWatcherWorker
 }
 
 func (myself *Agent) Start() {
@@ -70,20 +73,22 @@ func (myself *Agent) Start() {
 		wm.Run()
 	}()
 
-	waitgroup.Add(2)
+	// --- start another watcher monitor ---
+	go func() {
+		myself.startWatchServer(cli)
+	}()
+
+	waitgroup.Add(1)
 	// --- open thread
 	go func() {
 		go myself.startRegisterServer(cli)
-		waitgroup.Done()
-	}()
 
-	go func() {
-		myself.startWatchServer(cli)
 		waitgroup.Done()
 	}()
 
 	// --- start watch server
 	waitgroup.Wait()
+
 }
 
 func (myself *Agent) Stop() {
@@ -91,7 +96,7 @@ func (myself *Agent) Stop() {
 }
 
 // On implement event name
-func (myself *Agent) On(eventName string, fn func(ReqMsgContext)) error {
+func (myself *Agent) On(eventName string, fn func(api.ReqMsgContext)) error {
 
 	myself.regListeners[eventName] = fn
 
@@ -99,7 +104,7 @@ func (myself *Agent) On(eventName string, fn func(ReqMsgContext)) error {
 }
 
 // FireByQueue call by event name and define callback
-func (myself *Agent) FireByQueue(eventName string, msgBody []byte, callback ...Callback) error {
+func (myself *Agent) FireByQueue(eventName string, msgBody []byte, callback ...api.Callback) error {
 
 	// --- send message to  nats ---
 
@@ -141,21 +146,13 @@ func (myself *Agent) FireByQueue(eventName string, msgBody []byte, callback ...C
 
 	// ---- start watcher listener ---
 	// --- connect client ---
-	var cli *clientv3.Client
-	cli, err = clientv3.New(myself.conf._etcdConfig)
 
-	if err != nil {
-		structBean := logapi.NewStructBean()
-		structBean.LogStringArray("etcd.server", myself.conf._etcdConfig.Endpoints)
-		logapi.GetLogger("serviebus.FireByQueue").Fatal("Connect etcd server fail.", structBean)
+	//watcher := NewQueueWatcher(cli)
+	//watcher.SetCallbacks(callback...)
+	//watcher.SetEventKey(strings.Join([]string{"resm", strconv.FormatInt(reqEvent.ReqId, 10)}, "/"))
 
-	}
-
-	watcher := NewQueueWatcher(cli)
-	watcher.SetCallbacks(callback...)
-	watcher.SetEventKey(strings.Join([]string{"resm", strconv.FormatInt(reqEvent.ReqId, 10)}, "/"))
 	go func() {
-		watcher.run()
+		myself.respWatcher.WatcherQueueResp(strings.Join([]string{"resm", strconv.FormatInt(reqEvent.ReqId, 10)}, "/"), callback...)
 	}()
 
 	myself.natsConn.Publish("reqm", req)
@@ -163,7 +160,7 @@ func (myself *Agent) FireByQueue(eventName string, msgBody []byte, callback ...C
 	return nil
 }
 
-func (myself *Agent) FireByPublish(eventName string, msgBody []byte, callback ...Callback) error {
+func (myself *Agent) FireByPublish(eventName string, msgBody []byte, callback ...api.Callback) error {
 
 	// --- send message to  nats ---
 
@@ -224,7 +221,7 @@ func (myself *Agent) FireByPublish(eventName string, msgBody []byte, callback ..
 	return nil
 }
 
-// ---------------------  private method ---
+// -----------------  private method ---
 func (myself *Agent) startRegisterServer(cli *clientv3.Client) {
 
 	var err error
@@ -240,15 +237,14 @@ func (myself *Agent) startRegisterServer(cli *clientv3.Client) {
 	if err != nil {
 		log.Println(err)
 	}
-
 }
 
 func (myself *Agent) startWatchServer(cli *clientv3.Client) {
 
 	var err error
-	var serv = NewAgentWatchService(myself.conf._agentNodeId, cli)
+	myself.respWatcher = worker.NewEtcdWatcherWorker(myself.conf._agentNodeId, cli)
 
-	err = serv.Start()
+	err = myself.respWatcher.Start()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -321,7 +317,7 @@ func NewAgent(conf *Config) *Agent {
 	var agent = new(Agent)
 	agent.conf = conf
 
-	agent.regListeners = make(map[string]func(ReqMsgContext))
+	agent.regListeners = make(map[string]func(api.ReqMsgContext))
 
 	//  start scheduler
 

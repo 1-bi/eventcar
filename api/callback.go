@@ -1,4 +1,4 @@
-package eventcar
+package api
 
 import "github.com/1-bi/uerrors"
 

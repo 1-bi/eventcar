@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/1-bi/eventcar"
+	"github.com/1-bi/eventcar/api"
 	"github.com/1-bi/eventcar/schema"
 	"github.com/1-bi/eventcar/worker"
 	"github.com/1-bi/log-api"
@@ -102,17 +103,17 @@ func runListner() {
 	}()
 
 	// connect api --
-	go func() {
-		time.Sleep(6 * time.Second)
-		Client_fire2(agent)
-	}()
+	//go func() {
+	//time.Sleep(6 * time.Second)
+	//Client_fire2(agent)
+	//}()
 	// ---- keep program running ----
 	runtime.Goexit()
 }
 
-func Client_AddListener(clientApi eventcar.ClientApi) {
+func Client_AddListener(clientApi api.ClientApi) {
 
-	clientApi.On("test.event1", func(ctx eventcar.ReqMsgContext) {
+	clientApi.On("test.event1", func(ctx api.ReqMsgContext) {
 
 		fmt.Println(" call define event . ")
 		fmt.Println(string(ctx.GetMsgRawBody()))
@@ -125,11 +126,11 @@ func Client_AddListener(clientApi eventcar.ClientApi) {
 
 }
 
-func Client_fire(clientApi eventcar.ClientApi) {
+func Client_fire(clientApi api.ClientApi) {
 
 	var msg = "hello test case 1"
 
-	var cb eventcar.SuccessCallback
+	var cb api.SuccessCallback
 
 	cb = new(SuccessCallbackImpl)
 
@@ -138,11 +139,11 @@ func Client_fire(clientApi eventcar.ClientApi) {
 	fmt.Println("send message ")
 }
 
-func Client_fire2(clientApi eventcar.ClientApi) {
+func Client_fire2(clientApi api.ClientApi) {
 
 	var msg = "hello test case 2"
 
-	var cb eventcar.SuccessCallback
+	var cb api.SuccessCallback
 
 	cb = new(SuccessCallbackImpl)
 
@@ -155,7 +156,7 @@ type SuccessCallbackImpl struct {
 }
 
 func (myself *SuccessCallbackImpl) Succeed(content []byte) {
-	fmt.Println(" callback successfully .")
+	fmt.Println(" callback successfully . receive ")
 	fmt.Println(string(content))
 }
 

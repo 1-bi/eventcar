@@ -3,7 +3,7 @@
  * define all interface in this file
  * =========================================================================== *
  */
-package eventcar
+package api
 
 import (
 	"github.com/1-bi/uerrors"

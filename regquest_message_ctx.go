@@ -1,6 +1,9 @@
 package eventcar
 
-import "github.com/1-bi/eventcar/schema"
+import (
+	"github.com/1-bi/eventcar/api"
+	"github.com/1-bi/eventcar/schema"
+)
 
 type embeddedReqMsgContext struct {
 	rawMsgBody []byte
@@ -26,6 +29,6 @@ func (myself *embeddedReqMsgContext) GetMsgRawBody() []byte {
 	return myself.rawMsgBody
 }
 
-func (myself *embeddedReqMsgContext) GetResResult() Result {
+func (myself *embeddedReqMsgContext) GetResResult() api.Result {
 	return myself.resResult
 }
