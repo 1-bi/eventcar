@@ -4,8 +4,8 @@ go 1.12
 
 require (
 	github.com/1-bi/cron v1.1.0
-	github.com/1-bi/log-api v0.0.7
-	github.com/1-bi/log-zap v0.0.4
+	github.com/1-bi/log-api v0.1.1
+	github.com/1-bi/log-zap v0.0.5
 	github.com/1-bi/servicebus v0.0.5
 	github.com/1-bi/uerrors v0.0.0-20181211134740-319f72cff4f5
 	github.com/armon/go-metrics v0.0.0-20190430140413-ec5e00d3c878 // indirect

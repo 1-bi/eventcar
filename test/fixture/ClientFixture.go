@@ -1,51 +1,60 @@
 package fixture
 
 import (
-	"fmt"
 	"github.com/1-bi/eventcar"
-	"github.com/1-bi/eventcar/api"
 	"github.com/1-bi/log-api"
 	"github.com/1-bi/log-zap"
 	"github.com/1-bi/log-zap/appender"
 	zaplayout "github.com/1-bi/log-zap/layout"
 	"github.com/coreos/etcd/clientv3"
+	"github.com/nats-io/go-nats-streaming"
 	"github.com/smartystreets/gunit"
 	"log"
+	"strings"
 	"time"
 )
 
 // ClientFixture Test structure framework define
-type AgentFixture struct {
+type ClientFixture struct {
 	*gunit.Fixture
 
-	agent *eventcar.Agent
+	client *eventcar.ClientEndpoint
 }
 
 // SetupAgent
-func (myself *AgentFixture) Setup() {
+func (myself *ClientFixture) Setup() {
 	// --- create client ---
 	myself.prepareLogSetting()
 
-	conf, err := myself.prepareConfig()
+	_, err := myself.prepareConfig()
 
 	if err != nil {
-		logapi.GetLogger("agent_basecase1").Fatal(err.Error(), nil)
+		logapi.GetLogger("client_object ").Fatal(err.Error(), nil)
+	}
+
+	// --- create client --
+	natsHost := []string{"nats://localhost:4222"}
+	natsServer := strings.Join(natsHost, ",")
+	natsConn, err := stan.Connect("test-cluster", "clienttest", stan.NatsURL(natsServer))
+	if err != nil {
+		structBean := logapi.NewStructBean()
+		structBean.LogStringArray("nats.server", natsHost)
+		logapi.GetLogger("serviebus.Start").Fatal("Connect nats server fail.", structBean)
+		return
 	}
 
 	// dstart client to complent
-	myself.agent = eventcar.NewAgent(conf)
+	myself.client = eventcar.NewClient(1, natsConn, nil)
 
-	myself.agent.Start()
 }
 
-func (myself *AgentFixture) Teardown() {
+func (myself *ClientFixture) Teardown() {
 
 	// --- stop server
-	myself.agent.Stop()
 
 }
 
-func (myself *AgentFixture) prepareLogSetting() {
+func (myself *ClientFixture) prepareLogSetting() {
 
 	// --- construct layout ---
 	var jsonLayout = zaplayout.NewJsonLayout()
@@ -74,7 +83,7 @@ func (myself *AgentFixture) prepareLogSetting() {
 	}
 }
 
-func (myself *AgentFixture) prepareConfig() (*eventcar.Config, error) {
+func (myself *ClientFixture) prepareConfig() (*eventcar.Config, error) {
 
 	var conf = eventcar.NewConfig()
 
@@ -95,20 +104,7 @@ func (myself *AgentFixture) prepareConfig() (*eventcar.Config, error) {
 
 }
 
-func (myself *AgentFixture) Test_Subscribe_Publish() {
+func (myself *ClientFixture) Test_Publish_Queue() {
 
-	myself.agent.On("client.test.case1", func(ctx api.ReqMsgContext) {
-
-		reqMsg := string(ctx.GetMsgRawBody())
-
-		fmt.Println("receive message ")
-		fmt.Println(reqMsg)
-
-		ctx.GetResResult().Complete([]byte("response message "))
-
-	})
-
-	time.Sleep(6 * time.Second)
-
-	myself.agent.FireByQueue("client.test.case1", []byte("hello testabdi"))
+	myself.client.FireByQueue("client.test.case1", []byte("hello testabdi"))
 }

@@ -36,7 +36,7 @@ func (myself *EtcdServiceOperationsFixture) Setup() {
 		log.Println(err)
 	}
 
-	// --- create agent ---
+	// --- create client ---
 	myself.servOper = etcd.NewEtcdServiceOperations(cli, nil)
 }
 
