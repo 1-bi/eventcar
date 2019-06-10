@@ -2,6 +2,8 @@ package eventcar
 
 import (
 	"fmt"
+	"github.com/1-bi/eventcar/encoder"
+	"github.com/1-bi/eventcar/encoder/protobuf"
 	"github.com/1-bi/log-api"
 	"github.com/coreos/etcd/clientv3"
 	"io/ioutil"
@@ -26,6 +28,9 @@ type Config struct {
 	nodeNum int64
 
 	_agentNodeId string
+
+	// --- define message encoder ---
+	msgEncoder encoder.MsgEncoder
 }
 
 func NewConfig() *Config {
@@ -37,6 +42,8 @@ func NewConfig() *Config {
 	conf._natsClusterId = "test-cluster"
 	conf._natsClientId = "test-client"
 	conf.nodeNum = 1
+
+	conf.msgEncoder = new(protobuf.ProtobufWithBase64MsgEncoder)
 	return conf
 }
 

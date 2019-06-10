@@ -11,12 +11,12 @@ import (
 type ProtobufEncoderFixture struct {
 	*gunit.Fixture
 
-	msgEncoder encoder.Encoder
+	msgEncoder encoder.MsgEncoder
 }
 
 func (myself *ProtobufEncoderFixture) Setup() {
 	// --- create client ---
-	myself.msgEncoder = new(protobuf.EncoderImpl)
+	myself.msgEncoder = new(protobuf.ProtobufWithBase64MsgEncoder)
 }
 
 func (myself *ProtobufEncoderFixture) Teardown() {

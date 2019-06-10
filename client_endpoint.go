@@ -22,7 +22,7 @@ type ClientEndpoint struct {
 	etcdServOpt   *etcd.EtcdServiceOperations
 	respWatcher   *worker.EtcdWatcherWorker
 
-	msgEncoder encoder.Encoder
+	msgEncoder encoder.MsgEncoder
 }
 
 // NewAgent check agent
@@ -52,7 +52,7 @@ func NewClient(nodeNum int64, natsConn stan.Conn, cli *clientv3.Client) *ClientE
 		client.etcdServOpt = etcd.NewEtcdServiceOperations(cli, servOptsMap)
 	}
 
-	client.msgEncoder = new(protobuf.EncoderImpl)
+	client.msgEncoder = new(protobuf.ProtobufWithBase64MsgEncoder)
 
 	// start describe queue to nats
 	return client
