@@ -95,6 +95,11 @@ func (myself *Agent) Stop() {
 
 }
 
+// get client apit define
+func (myself *Agent) GetClient() *ClientEndpoint {
+	return nil
+}
+
 // On implement event name
 func (myself *Agent) On(eventName string, fn func(api.ReqMsgContext)) error {
 

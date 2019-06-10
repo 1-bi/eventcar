@@ -2,13 +2,14 @@ package eventcar
 
 import (
 	"github.com/1-bi/eventcar/api"
+	"github.com/1-bi/eventcar/encoder"
+	"github.com/1-bi/eventcar/encoder/protobuf"
 	"github.com/1-bi/eventcar/etcd"
 	"github.com/1-bi/eventcar/schema"
 	"github.com/1-bi/eventcar/worker"
 	"github.com/1-bi/log-api"
 	"github.com/bwmarrin/snowflake"
 	"github.com/coreos/etcd/clientv3"
-	"github.com/gogo/protobuf/proto"
 	"github.com/nats-io/go-nats-streaming"
 	"strconv"
 	"strings"
@@ -20,6 +21,8 @@ type ClientEndpoint struct {
 	regListeners  map[string]func(api.ReqMsgContext)
 	etcdServOpt   *etcd.EtcdServiceOperations
 	respWatcher   *worker.EtcdWatcherWorker
+
+	msgEncoder encoder.Encoder
 }
 
 // NewAgent check agent
@@ -49,6 +52,8 @@ func NewClient(nodeNum int64, natsConn stan.Conn, cli *clientv3.Client) *ClientE
 		client.etcdServOpt = etcd.NewEtcdServiceOperations(cli, servOptsMap)
 	}
 
+	client.msgEncoder = new(protobuf.EncoderImpl)
+
 	// start describe queue to nats
 	return client
 
@@ -76,7 +81,7 @@ func (myself *ClientEndpoint) FireByQueue(eventName string, msgBody []byte, call
 	// --- sent msg body ---
 	var reqMsg []byte
 
-	reqMsg, err := proto.Marshal(reqEvent)
+	reqMsg, err := myself.msgEncoder.EncodeReqEvent(reqEvent)
 
 	if err != nil {
 		return err
@@ -88,7 +93,7 @@ func (myself *ClientEndpoint) FireByQueue(eventName string, msgBody []byte, call
 	reqQ.ComType = schema.ReqQ_QUE
 
 	var req []byte
-	req, err = proto.Marshal(reqQ)
+	req, err = myself.msgEncoder.EncodeReqQ(reqQ)
 
 	if err != nil {
 		return err
@@ -135,7 +140,7 @@ func (myself *ClientEndpoint) FireByPublish(eventName string, msgBody []byte, ca
 	// --- sent msg body ---+
 	var reqMsg []byte
 
-	reqMsg, err := proto.Marshal(reqEvent)
+	reqMsg, err := myself.msgEncoder.EncodeReqEvent(reqEvent)
 
 	if err != nil {
 		return err
@@ -147,7 +152,7 @@ func (myself *ClientEndpoint) FireByPublish(eventName string, msgBody []byte, ca
 	reqQ.ComType = schema.ReqQ_SUB
 
 	var req []byte
-	req, err = proto.Marshal(reqQ)
+	req, err = myself.msgEncoder.EncodeReqQ(reqQ)
 
 	if err != nil {
 		return err
