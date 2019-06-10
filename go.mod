@@ -4,8 +4,8 @@ go 1.12
 
 require (
 	github.com/1-bi/cron v1.1.0
-	github.com/1-bi/log-api v0.0.7
-	github.com/1-bi/log-zap v0.0.4
+	github.com/1-bi/log-api v0.1.1
+	github.com/1-bi/log-zap v0.0.5
 	github.com/1-bi/servicebus v0.0.5
 	github.com/1-bi/uerrors v0.0.0-20181211134740-319f72cff4f5
 	github.com/armon/go-metrics v0.0.0-20190430140413-ec5e00d3c878 // indirect
@@ -40,6 +40,7 @@ require (
 	github.com/nats-io/stan.go v0.4.5
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v0.9.3 // indirect
+	github.com/smartystreets/assertions v0.0.0-20190401211740-f487f9de1cd3
 	github.com/smartystreets/gunit v0.0.0-20190426220047-d9c9211acd48
 	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect

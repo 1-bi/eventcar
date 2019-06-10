@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/1-bi/eventcar"
 	"github.com/1-bi/eventcar/api"
@@ -11,6 +12,7 @@ import (
 	"github.com/1-bi/log-zap/appender"
 	zaplayout "github.com/1-bi/log-zap/layout"
 	"github.com/coreos/etcd/clientv3"
+	"github.com/gogo/protobuf/proto"
 	"github.com/nats-io/go-nats-streaming"
 	"log"
 	"runtime"
@@ -19,9 +21,73 @@ import (
 )
 
 func main() {
-	//testNatsServer()
 
-	runListner()
+	natsHost := []string{"nats://localhost:4222"}
+	natsServer := strings.Join(natsHost, ",")
+	natsConn, err := stan.Connect("test-cluster", "clienttest", stan.NatsURL(natsServer))
+	if err != nil {
+		structBean := logapi.NewStructBean()
+		structBean.LogStringArray("nats.server", natsHost)
+		logapi.GetLogger("serviebus.Start").Fatal("Connect nats server fail.", structBean)
+		return
+	}
+
+	//testNatsServer()
+	go func() {
+		//testReceiveMsg( natsConn )
+	}()
+
+	go func() {
+		time.Sleep(3 * time.Second)
+		// Simple Synchronous Publisher
+		//natsConn.Publish("reqm", []byte("Hello World 123")) // does not return until an ack has been received from NATS Streaming
+
+	}()
+
+	//fmt.Println(  sub )
+	// Unsubscribe
+	//sub.Unsubscribe()
+
+	// Close connection
+	go func() {
+		//time.Sleep( 6 * time.Second)
+		// Simple Synchronous Publisher
+		//natsConn.Close()
+
+	}()
+
+	//runListner()
+	select {}
+
+}
+
+func testReceiveMsg(natsConn stan.Conn) {
+
+	sub, err := natsConn.Subscribe("reqm", func(m *stan.Msg) {
+
+		fmt.Println("recieve msg ")
+		decodeBytes, err := base64.StdEncoding.DecodeString(string(m.Data))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		fmt.Println(string(decodeBytes))
+
+		reqQ := new(schema.ReqQ)
+
+		if err := proto.Unmarshal(decodeBytes, reqQ); err != nil {
+			fmt.Println(err)
+		}
+
+		fmt.Println(reqQ.ReqId)
+		fmt.Println(reqQ.Name)
+		fmt.Println(reqQ.ComType)
+
+	})
+
+	if err != nil {
+		fmt.Println(sub)
+		fmt.Println(err)
+	}
 
 }
 

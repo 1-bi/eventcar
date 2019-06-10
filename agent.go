@@ -9,7 +9,6 @@ import (
 	"github.com/1-bi/log-api"
 	"github.com/bwmarrin/snowflake"
 	"github.com/coreos/etcd/clientv3"
-	"github.com/gogo/protobuf/proto"
 	"github.com/nats-io/go-nats-streaming"
 	"log"
 	"strconv"
@@ -95,6 +94,11 @@ func (myself *Agent) Stop() {
 
 }
 
+// get client apit define
+func (myself *Agent) GetClient() *ClientEndpoint {
+	return nil
+}
+
 // On implement event name
 func (myself *Agent) On(eventName string, fn func(api.ReqMsgContext)) error {
 
@@ -118,7 +122,7 @@ func (myself *Agent) FireByQueue(eventName string, msgBody []byte, callback ...a
 	// --- sent msg body ---
 	var reqMsg []byte
 
-	reqMsg, err := proto.Marshal(reqEvent)
+	reqMsg, err := myself.conf.msgEncoder.EncodeReqEvent(reqEvent)
 
 	if err != nil {
 		return err
@@ -130,7 +134,7 @@ func (myself *Agent) FireByQueue(eventName string, msgBody []byte, callback ...a
 	reqQ.ComType = schema.ReqQ_QUE
 
 	var req []byte
-	req, err = proto.Marshal(reqQ)
+	req, err = myself.conf.msgEncoder.EncodeReqQ(reqQ)
 
 	if err != nil {
 		return err
@@ -178,7 +182,7 @@ func (myself *Agent) FireByPublish(eventName string, msgBody []byte, callback ..
 	// --- sent msg body ---+
 	var reqMsg []byte
 
-	reqMsg, err := proto.Marshal(reqEvent)
+	reqMsg, err := myself.conf.msgEncoder.EncodeReqEvent(reqEvent)
 
 	if err != nil {
 		return err
@@ -190,7 +194,7 @@ func (myself *Agent) FireByPublish(eventName string, msgBody []byte, callback ..
 	reqQ.ComType = schema.ReqQ_SUB
 
 	var req []byte
-	req, err = proto.Marshal(reqQ)
+	req, err = myself.conf.msgEncoder.EncodeReqQ(reqQ)
 
 	if err != nil {
 		return err
@@ -279,8 +283,8 @@ func (myself *Agent) handleReq(reqQ *schema.ReqQ) {
 	// --- remove message ---
 
 	// 解码
-	recReqEventMsg := new(schema.ReqEvent)
-	if err := proto.Unmarshal(req, recReqEventMsg); err != nil {
+	recReqEventMsg, err := myself.conf.msgEncoder.DecodeReqEvent(req)
+	if err != nil {
 		log.Fatal("failed to unmarshal: ", err)
 	}
 
@@ -298,7 +302,7 @@ func (myself *Agent) handleReq(reqQ *schema.ReqQ) {
 
 		var resMsg []byte
 
-		resMsg, err := proto.Marshal(reqMsgCtx.resResult.ConvertRepResult())
+		resMsg, err := myself.conf.msgEncoder.EncodeResEvent(reqMsgCtx.resResult.ConvertRepResult())
 
 		if err != nil {
 			log.Println(err)
